@@ -1,0 +1,54 @@
+# Bu iş akışı, GitHub tarafından onaylanmamış eylemleri kullanır.
+# Üçüncü bir tarafça sağlanmıştır ve ayrı hizmet şartlarına, gizlilik politikasına ve destek
+# belgelerine tabidir.
+
+# Bu iş akışı, bir Java projesini Gradle ile oluşturacak ve iş akışı yürütme süresini
+# iyileştirmek için bağımlılıkları önbelleğe alacak/geri yükleyecektir.
+# Daha fazla bilgi için bakınız: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-java-with-gradle
+
+name: Java CI with Gradle (Manuel Tetikleme)
+
+on:
+  # Bu kısım, iş akışının sadece GitHub Actions sekmesinden "Run workflow" butonu ile
+  # manuel olarak başlatılabilmesini sağlar.
+  workflow_dispatch:
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+    - uses: actions/checkout@v4
+      # Proje kaynak kodunu çeker
+
+    - name: Set up JDK 21
+      uses: actions/setup-java@v4
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+      # Java Development Kit (JDK) sürüm 21'i ayarlar
+
+    # Bağımlılıkların önbelleğe alınması da dahil olmak üzere GitHub Actions'ta en iyi
+    # kullanım için Gradle'ı yapılandırır.
+    # Bakınız: https://github.com/gradle/actions/blob/main/setup-gradle/README.md
+    - name: Setup Gradle
+      run: |
+        # gradlew dosyasının çalıştırılabilir olduğundan emin olur
+        chmod +x ./gradlew
+        # 'setup' görevinin ne yaptığını bilmiyorsam bu satırı kontrol etmeliyim,
+        # genellikle bağımlılıkları indirir veya özel ayarlar yapar.
+        ./gradlew setup
+
+    - name: Build with Gradle Wrapper
+      # Projenizi oluşturmak için 'youerJar' Gradle görevini çalıştırır
+      run: ./gradlew youerJar
+
+    - name: Upload a Build Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: Youer-1.21.1-server
+        # Oluşturulan JAR dosyasını yapı öğesi (artifact) olarak yükler
+        path: projects/youer/build/libs/*-server.jar
