@@ -1,0 +1,109 @@
+--- a/net/minecraft/world/entity/projectile/ThrownPotion.java
++++ b/net/minecraft/world/entity/projectile/ThrownPotion.java
+@@ -30,6 +_,7 @@
+ import net.minecraft.world.phys.BlockHitResult;
+ import net.minecraft.world.phys.EntityHitResult;
+ import net.minecraft.world.phys.HitResult;
++import org.bukkit.craftbukkit.event.CraftEventFactory;
+ 
+ public class ThrownPotion extends ThrowableItemProjectile implements ItemSupplier {
+     public static final double SPLASH_RANGE = 4.0;
+@@ -78,15 +_,41 @@
+         }
+     }
+ 
++    public void splash(@Nullable HitResult p_37543_) {
++        if (!this.level().isClientSide) {
++            ItemStack itemstack = this.getItem();
++            PotionContents potioncontents = itemstack.getOrDefault(DataComponents.POTION_CONTENTS, PotionContents.EMPTY);
++            if (potioncontents.is(Potions.WATER)) {
++                this.applyWater();
++            } else if (true || potioncontents.hasEffects()) { // CraftBukkit - Call event even if no effects to apply
++                if (this.isLingering()) {
++                    makeAreaOfEffectCloud$position = p_37543_;
++                    this.makeAreaOfEffectCloud(potioncontents);
++                } else {
++                    this.applySplash(
++                            potioncontents.getAllEffects(), p_37543_.getType() == HitResult.Type.ENTITY ? ((EntityHitResult)p_37543_).getEntity() : null
++                    );
++                }
++            }
++
++            int i = potioncontents.potion().isPresent() && potioncontents.potion().get().value().hasInstantEffects() ? 2007 : 2002;
++            this.level().levelEvent(i, this.blockPosition(), potioncontents.getColor());
++            this.setRemoved$cause(org.bukkit.event.entity.EntityRemoveEvent.Cause.HIT);
++            this.discard(); // CraftBukkit - add Bukkit remove cause
++        }
++    }
++
+     @Override
+     protected void onHit(HitResult p_37543_) {
+         super.onHit(p_37543_);
+         if (!this.level().isClientSide) {
+             ItemStack itemstack = this.getItem();
+             PotionContents potioncontents = itemstack.getOrDefault(DataComponents.POTION_CONTENTS, PotionContents.EMPTY);
++
++            boolean showParticles = true; // Paper - Fix potions splash events
+             if (potioncontents.is(Potions.WATER)) {
+                 this.applyWater();
+-            } else if (potioncontents.hasEffects()) {
++            } else if (true || potioncontents.hasEffects()) { // CraftBukkit - Call event even if no effects to apply
+                 if (this.isLingering()) {
+                     this.makeAreaOfEffectCloud(potioncontents);
+                 } else {
+@@ -98,7 +_,8 @@
+ 
+             int i = potioncontents.potion().isPresent() && potioncontents.potion().get().value().hasInstantEffects() ? 2007 : 2002;
+             this.level().levelEvent(i, this.blockPosition(), potioncontents.getColor());
+-            this.discard();
++            this.setRemoved$cause(org.bukkit.event.entity.EntityRemoveEvent.Cause.HIT);
++            this.discard(); // CraftBukkit - add Bukkit remove cause
+         }
+     }
+ 
+@@ -126,6 +_,7 @@
+     private void applySplash(Iterable<MobEffectInstance> p_330815_, @Nullable Entity p_37549_) {
+         AABB aabb = this.getBoundingBox().inflate(4.0, 2.0, 4.0);
+         List<LivingEntity> list = this.level().getEntitiesOfClass(LivingEntity.class, aabb);
++        java.util.Map<org.bukkit.entity.LivingEntity, Double> affected = new java.util.HashMap<>(); // CraftBukkit
+         if (!list.isEmpty()) {
+             Entity entity = this.getEffectSource();
+ 
+@@ -160,6 +_,7 @@
+         }
+     }
+ 
++    private @Nullable HitResult makeAreaOfEffectCloud$position;
+     private void makeAreaOfEffectCloud(PotionContents p_332124_) {
+         AreaEffectCloud areaeffectcloud = new AreaEffectCloud(this.level(), this.getX(), this.getY(), this.getZ());
+         if (this.getOwner() instanceof LivingEntity livingentity) {
+@@ -171,7 +_,15 @@
+         areaeffectcloud.setWaitTime(10);
+         areaeffectcloud.setRadiusPerTick(-areaeffectcloud.getRadius() / (float)areaeffectcloud.getDuration());
+         areaeffectcloud.setPotionContents(p_332124_);
+-        this.level().addFreshEntity(areaeffectcloud);
++        boolean noEffects = p_332124_.hasEffects(); // Paper - Fix potions splash events
++        // CraftBukkit start
++        org.bukkit.event.entity.LingeringPotionSplashEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callLingeringPotionSplashEvent(this, makeAreaOfEffectCloud$position, areaeffectcloud);
++        if (!(event.isCancelled() || areaeffectcloud.isRemoved() || (!event.allowsEmptyCreation() && (noEffects && !areaeffectcloud.potionContents.hasEffects())))) { // Paper - don't spawn area effect cloud if the effects were empty and not changed during the event handling
++            this.level().addFreshEntity(areaeffectcloud);
++        } else {
++            areaeffectcloud.discard(null); // CraftBukkit - add Bukkit remove cause
++        }
++        // CraftBukkit end
+     }
+ 
+     public boolean isLingering() {
+@@ -181,7 +_,11 @@
+     private void dowseFire(BlockPos p_150193_) {
+         BlockState blockstate = this.level().getBlockState(p_150193_);
+         if (blockstate.is(BlockTags.FIRE)) {
+-            this.level().destroyBlock(p_150193_, false, this);
++            // CraftBukkit start
++            if (CraftEventFactory.callEntityChangeBlockEvent(this, p_150193_, blockstate.getFluidState().createLegacyBlock())) { // Paper - fix wrong block state
++                this.level().destroyBlock(p_150193_, false, this);
++            }
++            // CraftBukkit end
+         } else if (AbstractCandleBlock.isLit(blockstate)) {
+             AbstractCandleBlock.extinguish(null, blockstate, this.level(), p_150193_);
+         } else if (CampfireBlock.isLitCampfire(blockstate)) {

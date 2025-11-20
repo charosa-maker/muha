@@ -1,0 +1,55 @@
+--- a/net/minecraft/tags/TagEntry.java
++++ b/net/minecraft/tags/TagEntry.java
+@@ -24,9 +_,9 @@
+             p_215935_ -> p_215935_.map(p_215933_ -> new TagEntry(p_215933_, true), p_215946_ -> (TagEntry)p_215946_),
+             p_215931_ -> p_215931_.required ? Either.left(p_215931_.elementOrTag()) : Either.right(p_215931_)
+         );
+-    private final ResourceLocation id;
+-    private final boolean tag;
+-    private final boolean required;
++    public final ResourceLocation id;
++    public final boolean tag;
++    public final boolean required;
+ 
+     private TagEntry(ResourceLocation p_215918_, boolean p_215919_, boolean p_215920_) {
+         this.id = p_215918_;
+@@ -44,6 +_,15 @@
+         return new ExtraCodecs.TagOrElementLocation(this.id, this.tag);
+     }
+ 
++    /**
++     * {@return a copy of this entry with the required flag set to the given parameter}
++     *
++     * @param required whether the new entry is required
++     */
++    TagEntry withRequired(boolean required) {
++        return new TagEntry(this.id, this.tag, required);
++    }
++
+     public static TagEntry element(ResourceLocation p_215926_) {
+         return new TagEntry(p_215926_, false, true);
+     }
+@@ -111,11 +_,21 @@
+         return stringbuilder.toString();
+     }
+ 
++    public ResourceLocation getId() {
++        return id;
++    }
++
++    public boolean isRequired() {
++        return required;
++    }
++
++    public boolean isTag() {
++        return tag;
++    }
++
+     public interface Lookup<T> {
+         @Nullable
+         T element(ResourceLocation p_215956_);
+-
+-        @Nullable
+         Collection<T> tag(ResourceLocation p_215957_);
+     }
+ }
