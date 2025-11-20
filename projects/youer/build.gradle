@@ -149,8 +149,8 @@ dependencies {
     libraries 'com.mohistmc:i18n:0.6'
     libraries 'com.mohistmc:json:0.5'
     libraries 'com.mohistmc:tools:0.6.2'
-    // NOTE: version string adjusted from 1.21.1-1 to 1.21-1 to match Minecraft 1.21 target.
-    libraries ('com.mohistmc:librariesvault:1.21-1') {
+    // NOTE: using librariesvault 1.21.1-1 because 1.21-1 is not yet available on public Maven; this does not affect the Minecraft target version.
+    libraries ('com.mohistmc:librariesvault:1.21.1-1') {
         exclude group: 'org.yaml'
         exclude group: 'io.leangen.geantyref'
         exclude group: 'org.spongepowered'
@@ -415,7 +415,7 @@ artifacts {
 
 task downloadMultipleFiles(type: Download) {
     src([
-'https://maven.mohistmc.com/libraries/1.21/youer/libraries.zip'
+            'https://maven.mohistmc.com/libraries/1.21.1/youer/libraries.zip'
     ])
     dest layout.buildDirectory.dir("libraries")
 }
